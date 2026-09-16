@@ -23,9 +23,14 @@ import {
   Store,
   ChevronRight,
   AlertCircle,
+  Search,
+  Building2,
+  LocateFixed,
+  Compass,
 } from 'lucide-react';
 import { DeliveryPartner, VillageDarkStore, CartItem } from '../types';
 import { SEED_DELIVERY_PARTNERS, SEED_VILLAGE_DARK_STORES } from '../data/seedData';
+import { GoogleMapsVillageTracker } from './GoogleMapsVillageTracker';
 
 interface VillageQuickDeliveryMapProps {
   orderId?: string;
@@ -60,12 +65,105 @@ export const VillageQuickDeliveryMap: React.FC<VillageQuickDeliveryMapProps> = (
   const [riderProgress, setRiderProgress] = useState(38);
   const [isCallingRider, setIsCallingRider] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [activeTab, setActiveTab] = useState<'live_tracking' | 'dark_stores' | 'discreet_notes'>('live_tracking');
+  const [activeTab, setActiveTab] = useState<'live_tracking' | 'village_access' | 'dark_stores' | 'discreet_notes'>('live_tracking');
   const [discreetNote, setDiscreetNote] = useState('Please pack in opaque brown paper bag and hand over directly.');
   const [noteSaved, setNoteSaved] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(18 * 60 - 45); // ~17 mins
   const [activeDarkStore, setActiveDarkStore] = useState<VillageDarkStore>(SEED_VILLAGE_DARK_STORES[0]);
   const [isEmergencyDroneActive, setIsEmergencyDroneActive] = useState(selectedPartner.partnerType === 'SOS_DRONE');
+
+  // Village Access & Product Locator state
+  const [villageSearchQuery, setVillageSearchQuery] = useState('');
+  const [selectedVillageCoverage, setSelectedVillageCoverage] = useState<{
+    villageName: string;
+    block: string;
+    pincode: string;
+    status: 'ACTIVE_15MIN' | 'ASHA_DEPOT' | 'DRONE_CORRIDOR';
+    nearestHub: string;
+    distanceKm: number;
+    deliveryTimeMinutes: number;
+    inStockCount: { pads: number; tablets: number; patches: number; smartKits: number };
+  }>({
+    villageName: 'Govindgarh (Ward 1 - 12)',
+    block: 'Chomu Block',
+    pincode: '303702',
+    status: 'ACTIVE_15MIN',
+    nearestHub: 'StreeSure × Zepto Rural Micro-Hub #04',
+    distanceKm: 2.3,
+    deliveryTimeMinutes: 18,
+    inStockCount: { pads: 1800, tablets: 340, patches: 450, smartKits: 40 },
+  });
+
+  const RURAL_VILLAGE_COVERAGE_ZONES = [
+    {
+      villageName: 'Govindgarh (Ward 1 - 12)',
+      block: 'Chomu Block',
+      pincode: '303702',
+      status: 'ACTIVE_15MIN' as const,
+      nearestHub: 'StreeSure × Zepto Rural Micro-Hub #04',
+      distanceKm: 2.3,
+      deliveryTimeMinutes: 18,
+      inStockCount: { pads: 1800, tablets: 340, patches: 450, smartKits: 40 },
+    },
+    {
+      villageName: 'Chomu Rural & Morija',
+      block: 'Chomu Tehsil',
+      pincode: '303702',
+      status: 'ACTIVE_15MIN' as const,
+      nearestHub: 'Govindgarh PHC Central Dispensary',
+      distanceKm: 3.8,
+      deliveryTimeMinutes: 20,
+      inStockCount: { pads: 3200, tablets: 580, patches: 600, smartKits: 65 },
+    },
+    {
+      villageName: 'Nangal Kalan & Hamlets',
+      block: 'Nangal Kalan',
+      pincode: '303701',
+      status: 'ACTIVE_15MIN' as const,
+      nearestHub: 'Blinkit Gramin Pharmacy Node #12',
+      distanceKm: 4.5,
+      deliveryTimeMinutes: 22,
+      inStockCount: { pads: 1400, tablets: 210, patches: 320, smartKits: 25 },
+    },
+    {
+      villageName: 'Kaladera Rural Industrial Zone',
+      block: 'Kaladera',
+      pincode: '303801',
+      status: 'ASHA_DEPOT' as const,
+      nearestHub: 'StreeSure × Zepto Rural Micro-Hub #04',
+      distanceKm: 7.2,
+      deliveryTimeMinutes: 25,
+      inStockCount: { pads: 950, tablets: 180, patches: 240, smartKits: 15 },
+    },
+    {
+      villageName: 'Shahpura Rural Sub-Centre',
+      block: 'Shahpura',
+      pincode: '303103',
+      status: 'DRONE_CORRIDOR' as const,
+      nearestHub: 'Shahpura PHC Station',
+      distanceKm: 12.0,
+      deliveryTimeMinutes: 12,
+      inStockCount: { pads: 2200, tablets: 400, patches: 380, smartKits: 30 },
+    },
+    {
+      villageName: 'Jamwa Ramgarh Valley',
+      block: 'Jamwa Ramgarh',
+      pincode: '303109',
+      status: 'ASHA_DEPOT' as const,
+      nearestHub: 'Jamwa PHC Depot',
+      distanceKm: 14.5,
+      deliveryTimeMinutes: 30,
+      inStockCount: { pads: 800, tablets: 120, patches: 160, smartKits: 10 },
+    },
+  ];
+
+  // Filtered villages
+  const filteredVillages = RURAL_VILLAGE_COVERAGE_ZONES.filter(
+    (v) =>
+      v.villageName.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
+      v.block.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
+      v.pincode.includes(villageSearchQuery)
+  );
 
   // Simulated live moving rider timer
   useEffect(() => {
@@ -188,7 +286,7 @@ export const VillageQuickDeliveryMap: React.FC<VillageQuickDeliveryMapProps> = (
         </div>
       </div>
 
-      {/* Tabs navigation: Live Tracking / Dark Store Network / Discreet Delivery Notes */}
+      {/* Tabs navigation: Live Tracking / Village Access / Dark Store Network / Discreet Delivery Notes */}
       <div className="px-4 sm:px-6 pt-3 pb-1 border-b border-rose-500/15 flex gap-2 overflow-x-auto">
         <button
           type="button"
@@ -200,7 +298,20 @@ export const VillageQuickDeliveryMap: React.FC<VillageQuickDeliveryMapProps> = (
           }`}
         >
           <Navigation className="w-3.5 h-3.5" />
-          <span>Live Route Tracking</span>
+          <span>Google Maps Live Route</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('village_access')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'village_access'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-900/40'
+              : 'bg-rose-950/40 text-rose-300 hover:bg-rose-900/40 border border-rose-500/20'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Village Access & Products Locator</span>
         </button>
 
         <button
@@ -231,195 +342,18 @@ export const VillageQuickDeliveryMap: React.FC<VillageQuickDeliveryMapProps> = (
         </button>
       </div>
 
-      {/* TAB 1: LIVE INTERACTIVE MAP & TRACKING */}
+      {/* TAB 1: LIVE INTERACTIVE GOOGLE MAP & TRACKING */}
       {activeTab === 'live_tracking' && (
         <div className="p-4 sm:p-6 space-y-6">
-          {/* Real-Time Interactive SVG Village Route Map */}
-          <div className="relative w-full rounded-2xl bg-[#09050d] border border-rose-500/30 overflow-hidden shadow-inner aspect-[16/9] sm:aspect-[21/9] max-h-[320px]">
-            {/* Background Grid Lines & Rural Contour Texture */}
-            <svg
-              className="w-full h-full object-cover"
-              viewBox="0 0 450 280"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <defs>
-                {/* Neon Route Glow */}
-                <filter id="routeGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-                {/* Gradient for Delivery Trail */}
-                <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ec4899" />
-                  <stop offset="50%" stopColor="#f43f5e" />
-                  <stop offset="100%" stopColor="#10b981" />
-                </linearGradient>
-              </defs>
-
-              {/* Rural Farmland & Village Terrain Grid */}
-              <pattern id="ruralGrid" width="30" height="30" patternUnits="userSpaceOnUse">
-                <path
-                  d="M 30 0 L 0 0 0 30"
-                  fill="none"
-                  stroke="rgba(244, 63, 94, 0.05)"
-                  strokeWidth="0.8"
-                />
-              </pattern>
-              <rect width="450" height="280" fill="url(#ruralGrid)" />
-
-              {/* Village Green patches (Mustard / Crop fields) */}
-              <path
-                d="M 10 10 Q 70 40 50 110 Q 20 160 10 240 Z"
-                fill="rgba(16, 185, 129, 0.04)"
-              />
-              <path
-                d="M 280 20 Q 380 40 430 110 Q 440 220 330 260 Z"
-                fill="rgba(244, 63, 94, 0.04)"
-              />
-
-              {/* Rural Secondary Roads (Gray lines) */}
-              <path
-                d="M 20 80 Q 140 100 220 40 T 430 30"
-                stroke="rgba(255, 255, 255, 0.12)"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray="4 4"
-              />
-              <path
-                d="M 50 260 Q 150 190 280 240 T 430 220"
-                stroke="rgba(255, 255, 255, 0.1)"
-                strokeWidth="3.5"
-                fill="none"
-              />
-              <path
-                d="M 180 230 L 180 20"
-                stroke="rgba(255, 255, 255, 0.08)"
-                strokeWidth="2.5"
-                fill="none"
-              />
-
-              {/* Active Delivery Route Path (Chomu -> Govindgarh -> Ward 4) */}
-              <path
-                d="M 60 220 C 100 200, 140 210, 180 230 S 260 180, 310 120 T 380 80"
-                stroke="url(#routeGradient)"
-                strokeWidth="5"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter="url(#routeGlow)"
-              />
-
-              {/* Animated Dash Array to show live motion flow */}
-              <path
-                d="M 60 220 C 100 200, 140 210, 180 230 S 260 180, 310 120 T 380 80"
-                stroke="#ffffff"
-                strokeWidth="2"
-                strokeDasharray="6 8"
-                fill="none"
-                opacity="0.8"
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="100"
-                  to="0"
-                  dur="4s"
-                  repeatCount="indefinite"
-                />
-              </path>
-
-              {/* Landmark Pin 1: Village Micro Dark-Store */}
-              <g transform="translate(60, 220)">
-                <circle r="14" fill="rgba(244, 63, 94, 0.2)" className="animate-ping" />
-                <circle r="9" fill="#e11d48" stroke="#ffffff" strokeWidth="2" />
-                <text x="0" y="24" textAnchor="middle" fill="#fbcfe8" fontSize="9" fontWeight="bold">
-                  🏪 Zepto/Blinkit Hub
-                </text>
-              </g>
-
-              {/* Landmark Pin 2: Govindgarh PHC Sub-Centre */}
-              <g transform="translate(180, 230)">
-                <circle r="7" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1.5" />
-                <text x="0" y="18" textAnchor="middle" fill="#c4b5fd" fontSize="8">
-                  🏥 Sub-Centre PHC
-                </text>
-              </g>
-
-              {/* Landmark Pin 3: Village Square */}
-              <g transform="translate(240, 170)">
-                <circle r="6" fill="#64748b" stroke="#ffffff" strokeWidth="1" />
-                <text x="0" y="-10" textAnchor="middle" fill="#cbd5e1" fontSize="8">
-                  🏛️ Panchayat Circle
-                </text>
-              </g>
-
-              {/* Landmark Pin 4: User's House (Destination) */}
-              <g transform="translate(380, 80)">
-                <circle r="16" fill="rgba(16, 185, 129, 0.25)" className="animate-ping" />
-                <circle r="11" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
-                <text x="0" y="-18" textAnchor="middle" fill="#a7f3d0" fontSize="9" fontWeight="bold">
-                  🏠 Sunita's House (Ward 4)
-                </text>
-              </g>
-
-              {/* LIVE MOVING RIDER ICON */}
-              <g transform={`translate(${currentRiderX}, ${currentRiderY})`}>
-                <circle r="18" fill="rgba(244, 63, 94, 0.3)" className="animate-pulse" />
-                <circle r="12" fill="#fb7185" stroke="#ffffff" strokeWidth="2.5" />
-                {selectedPartner.partnerType === 'SOS_DRONE' ? (
-                  <text x="0" y="4" textAnchor="middle" fill="#ffffff" fontSize="11">
-                    🚁
-                  </text>
-                ) : (
-                  <text x="0" y="4" textAnchor="middle" fill="#ffffff" fontSize="11">
-                    🏍️
-                  </text>
-                )}
-                {/* Rider Label Tooltip */}
-                <rect
-                  x="-55"
-                  y="-32"
-                  width="110"
-                  height="20"
-                  rx="6"
-                  fill="rgba(15, 10, 25, 0.9)"
-                  stroke="rgba(244, 63, 94, 0.6)"
-                  strokeWidth="1"
-                />
-                <text x="0" y="-19" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold">
-                  {selectedPartner.riderName.split(' ')[0]} ({Math.round(selectedPartner.distanceKm * (1 - riderProgress / 100) * 10) / 10} km away)
-                </text>
-              </g>
-            </svg>
-
-            {/* Floating Live Status pill on Map */}
-            <div className="absolute bottom-3 left-3 right-3 sm:right-auto bg-[#170c20]/90 backdrop-blur-md border border-rose-500/30 rounded-2xl p-2.5 sm:p-3 flex items-center gap-3 shadow-lg">
-              <div className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center">
-                <Navigation className="w-4 h-4 text-pink-400 animate-spin duration-3000" />
-              </div>
-              <div className="text-xs">
-                <span className="text-[10px] text-rose-300 font-mono uppercase block">
-                  Current Rider Waypoint:
-                </span>
-                <strong className="text-white font-semibold">{currentRoadName}</strong>
-              </div>
-            </div>
-
-            {/* Quick Map Controls */}
-            <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={() => setRiderProgress((p) => Math.min(p + 15, 95))}
-                className="px-2.5 py-1 rounded-xl bg-rose-950/80 border border-rose-500/40 text-[10px] font-bold text-rose-200 hover:text-white shadow hover:bg-rose-900 transition flex items-center gap-1"
-                title="Fast Forward Simulation"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Simulate Forward</span>
-              </button>
-            </div>
-          </div>
+          {/* Google Maps Village Corridor Delivery Tracker */}
+          <GoogleMapsVillageTracker
+            riderProgress={riderProgress}
+            selectedPartner={selectedPartner}
+            activeDarkStore={activeDarkStore}
+            darkStores={SEED_VILLAGE_DARK_STORES}
+            destinationAddress={deliveryAddress}
+            onSelectDarkStore={(store) => setActiveDarkStore(store)}
+          />
 
           {/* Delivery Timeline / Status Progress Bar */}
           <div className="space-y-2">
@@ -547,7 +481,222 @@ export const VillageQuickDeliveryMap: React.FC<VillageQuickDeliveryMapProps> = (
         </div>
       )}
 
-      {/* TAB 2: VILLAGE DARK-STORE NETWORK LOCATOR (Blinkit / Zepto Style) */}
+      {/* TAB 2: VILLAGE ACCESS & PRODUCTS LOCATOR */}
+      {activeTab === 'village_access' && (
+        <div className="p-4 sm:p-6 space-y-6">
+          {/* Header & Description */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                <Compass className="w-5 h-5 text-rose-400" />
+                <span>Village Delivery Access & Product Stock Locator</span>
+              </h3>
+              <p className="text-xs text-rose-200/80">
+                Check how StreeSure reaches your village corridor with pre-positioned products and rapid delivery.
+              </p>
+            </div>
+            <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>42 Rural Corridors Mapped</span>
+            </span>
+          </div>
+
+          {/* Village & PIN Code Search Bar */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-rose-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={villageSearchQuery}
+              onChange={(e) => setVillageSearchQuery(e.target.value)}
+              placeholder="Search village name (e.g. Govindgarh, Chomu, Kaladera) or 6-digit PIN code..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#13091c] border border-rose-500/30 text-white placeholder:text-rose-300/40 text-xs focus:outline-none focus:border-rose-400 transition"
+            />
+          </div>
+
+          {/* Quick Village Selection Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+            <span className="text-[11px] font-bold text-rose-300 whitespace-nowrap">Suggested Villages:</span>
+            {RURAL_VILLAGE_COVERAGE_ZONES.map((v) => (
+              <button
+                key={v.villageName}
+                type="button"
+                onClick={() => {
+                  setSelectedVillageCoverage(v);
+                  setVillageSearchQuery('');
+                }}
+                className={`px-3 py-1 rounded-lg font-semibold text-[11px] whitespace-nowrap transition border ${
+                  selectedVillageCoverage.villageName === v.villageName
+                    ? 'bg-rose-600 text-white border-rose-500 shadow-sm'
+                    : 'bg-rose-950/40 text-rose-200 hover:bg-rose-900/40 border-rose-500/20'
+                }`}
+              >
+                {v.villageName.split(' ')[0]} ({v.pincode})
+              </button>
+            ))}
+          </div>
+
+          {/* Selected Village Detailed Access & Products Card */}
+          <div className="p-5 rounded-2xl bg-[#140a1e] border border-rose-500/30 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-500/20 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-rose-400" />
+                  <h4 className="text-sm sm:text-base font-black text-white">
+                    {selectedVillageCoverage.villageName}
+                  </h4>
+                </div>
+                <p className="text-xs text-rose-300/70">
+                  {selectedVillageCoverage.block}, Jaipur Rural • PIN {selectedVillageCoverage.pincode}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedVillageCoverage.status === 'ACTIVE_15MIN' && (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>15–20 Min E-Bike Delivery</span>
+                  </span>
+                )}
+                {selectedVillageCoverage.status === 'ASHA_DEPOT' && (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>ASHA Sub-Centre Pickup Point</span>
+                  </span>
+                )}
+                {selectedVillageCoverage.status === 'DRONE_CORRIDOR' && (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30 flex items-center gap-1">
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>Emergency Drone Drop Corridor</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Hub Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-[#0b0512] border border-rose-500/20">
+                <span className="text-[10px] text-rose-400 font-mono uppercase block">Nearest Rural Hub</span>
+                <strong className="text-white text-xs block truncate mt-0.5">
+                  {selectedVillageCoverage.nearestHub}
+                </strong>
+              </div>
+              <div className="p-3 rounded-xl bg-[#0b0512] border border-rose-500/20">
+                <span className="text-[10px] text-rose-400 font-mono uppercase block">Access Distance</span>
+                <strong className="text-white text-xs block mt-0.5">
+                  {selectedVillageCoverage.distanceKm} km from village center
+                </strong>
+              </div>
+              <div className="p-3 rounded-xl bg-[#0b0512] border border-rose-500/20">
+                <span className="text-[10px] text-rose-400 font-mono uppercase block">Estimated Delivery ETA</span>
+                <strong className="text-emerald-400 text-xs block mt-0.5">
+                  ~{selectedVillageCoverage.deliveryTimeMinutes} Minutes to Doorstep
+                </strong>
+              </div>
+            </div>
+
+            {/* Real In-Stock Products in this Village Hub */}
+            <div className="space-y-2 pt-2">
+              <span className="text-xs font-bold text-rose-200 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5 text-pink-400" />
+                <span>Live In-Stock Products Ready for Delivery in this Village Hub:</span>
+              </span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-2.5 rounded-xl bg-[#0e0617] border border-rose-500/20 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <span className="text-xl">🌿</span>
+                    <h5 className="text-[11px] font-bold text-white leading-tight">Organic Bamboo Pads</h5>
+                    <p className="text-[10px] text-rose-300/70">Govt Subsidized ₹40</p>
+                  </div>
+                  <span className="mt-2 text-[10px] font-bold text-emerald-400">
+                    {selectedVillageCoverage.inStockCount.pads} packs in stock
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0e0617] border border-rose-500/20 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <span className="text-xl">💊</span>
+                    <h5 className="text-[11px] font-bold text-white leading-tight">Cramp Relief Tablets</h5>
+                    <p className="text-[10px] text-rose-300/70">Herbal & Fast Action</p>
+                  </div>
+                  <span className="mt-2 text-[10px] font-bold text-emerald-400">
+                    {selectedVillageCoverage.inStockCount.tablets} units in stock
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0e0617] border border-rose-500/20 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <span className="text-xl">🔥</span>
+                    <h5 className="text-[11px] font-bold text-white leading-tight">Herbal Heating Patches</h5>
+                    <p className="text-[10px] text-rose-300/70">8-Hour Warmth Pad</p>
+                  </div>
+                  <span className="mt-2 text-[10px] font-bold text-emerald-400">
+                    {selectedVillageCoverage.inStockCount.patches} units in stock
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0e0617] border border-rose-500/20 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <span className="text-xl">🔬</span>
+                    <h5 className="text-[11px] font-bold text-white leading-tight">StreeSure Smart Kit</h5>
+                    <p className="text-[10px] text-rose-300/70">IoT Sensor & Diagnostics</p>
+                  </div>
+                  <span className="mt-2 text-[10px] font-bold text-pink-400">
+                    {selectedVillageCoverage.inStockCount.smartKits} kits in stock
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons: View on Google Map or Dispatch */}
+            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('live_tracking')}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-lg shadow-rose-900/40"
+              >
+                <Compass className="w-4 h-4" />
+                <span>Track Delivery Corridor on Google Map</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 3 Pillars of Village Accessibility */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1.5">
+              <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-300 font-bold text-sm">
+                1
+              </div>
+              <h5 className="text-xs font-bold text-white">Pre-Positioned PHC Hubs</h5>
+              <p className="text-[11px] text-rose-200/70 leading-relaxed">
+                Products are stored directly inside rural health Sub-Centres and dark-stores, eliminating city shipping delays.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-300 font-bold text-sm">
+                2
+              </div>
+              <h5 className="text-xs font-bold text-white">Discreet Local E-Bikes</h5>
+              <p className="text-[11px] text-rose-200/70 leading-relaxed">
+                Local village delivery partners bring products in plain brown tamper-evident packaging directly to doorsteps.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-300 font-bold text-sm">
+                3
+              </div>
+              <h5 className="text-xs font-bold text-white">Google Maps Corridor Sync</h5>
+              <p className="text-[11px] text-rose-200/70 leading-relaxed">
+                Every village ward, canal lane, and landmark is geo-tagged on Google Maps for pinpoint rural navigation.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: VILLAGE DARK-STORE NETWORK LOCATOR (Blinkit / Zepto Style) */}
       {activeTab === 'dark_stores' && (
         <div className="p-4 sm:p-6 space-y-5">
           <div className="flex items-center justify-between">

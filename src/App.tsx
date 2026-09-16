@@ -108,11 +108,15 @@ export default function App() {
     handleOpenAuth('signin');
   };
 
-  // Cart State
+  // Cart State with accurate real product images
   const [cart, setCart] = useState<CartItem[]>([
     {
-      product: SEED_PRODUCTS[0], // Anandi pads
+      product: SEED_PRODUCTS[0], // Anandi Bio-Organic Sanitary Pads
       quantity: 2,
+    },
+    {
+      product: SEED_PRODUCTS[6], // StreeSure Herbal Cramp Relief Heat Patches
+      quantity: 1,
     },
   ]);
 

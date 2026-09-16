@@ -53,6 +53,7 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     navCommunity: 'Community & Camps',
     navAnatomy3D: '3D Anatomy & Cycle',
     navSmartKit: 'Smart Kit (R&D)',
+    navPastReports: 'Past Reports & Assessment',
     navProfile: 'Profile',
     navDashboard: 'Dashboard',
     
@@ -202,6 +203,13 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     footerGovernmentInitiatives: 'Government Alignment',
     footerDisclaimers: 'Disclaimer: StreeSure is a non-diagnostic digital screening and health navigation application. Designed for SIH 2024 / healthcare equity.',
     allRightsReserved: 'All rights reserved.',
+    brandDescription: "StreeSure is a grassroots-first, multilingual AI screening, 3D anatomical visualization, and care navigation platform designed to bridge women's healthcare access across India.",
+    quickLinks: "Quick Links",
+    navScreening: "PCOS Screening",
+    navVoiceAssistant: "Voice Saathi",
+    navStore: "Care Store",
+    chooseLanguage: "Choose Language",
+    medicalDisclaimer: "StreeSure provides preliminary pattern screening, risk indicators, and health education. It is not a diagnostic device and does not replace clinical diagnosis, ultrasound examinations, or professional medical advice from a registered medical practitioner.",
   },
 
   hi: {
@@ -245,6 +253,7 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     navCommunity: 'समुदाय व कैंप',
     navAnatomy3D: '3D शरीर रचना व चक्र',
     navSmartKit: 'स्मार्ट किट (अनुसंधान)',
+    navPastReports: 'पिछली रिपोर्ट्स और जांच',
     navProfile: 'प्रोफ़ाइल',
     navDashboard: 'डैशबोर्ड',
 
@@ -394,6 +403,13 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     footerGovernmentInitiatives: 'सरकारी योजनाएं व सहयोग',
     footerDisclaimers: 'अस्वीकरण: स्त्रीश्योर एक गैर-निदान डिजिटल स्क्रीनिंग व स्वास्थ्य मार्गदर्शन प्लेटफ़ॉर्म है।',
     allRightsReserved: 'सर्वाधिकार सुरक्षित।',
+    brandDescription: "स्त्रीश्योर भारत भर में महिलाओं के स्वास्थ्य, प्रारंभिक स्क्रीनिंग, 3D शारीरिक शिक्षा और सुलभ स्वास्थ्य परामर्श के लिए समर्पित एक बहुभाषी AI मंच है।",
+    quickLinks: "महत्वपूर्ण लिंक्स",
+    navScreening: "PCOS स्क्रीनिंग",
+    navVoiceAssistant: "वॉइस साथी",
+    navStore: "केयर स्टोर",
+    chooseLanguage: "भाषा चुनें",
+    medicalDisclaimer: "स्त्रीश्योर केवल प्रारंभिक पैटर्न स्क्रीनिंग और स्वास्थ्य जागरूकता प्रदान करता है। यह किसी बीमारी का अंतिम निदान नहीं है और योग्य चिकित्सक या अल्ट्रासाउंड जांच का विकल्प नहीं है।",
   },
 
   bn: {
@@ -586,6 +602,13 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     footerGovernmentInitiatives: 'সরকারী উদ্যোগ',
     footerDisclaimers: 'দাবিত্যাগ: স্ত্রীশিওর একটি প্রাথমিক ডিজিটাল স্ক্রিনিং প্ল্যাটফর্ম।',
     allRightsReserved: 'সর্বস্বত্ব সংরক্ষিত।',
+    brandDescription: "স্ত্রীশিওর হল ভারত জুড়ে নারীদের প্রাথমিক স্ক্রীনিং, 3D শারীরিক সচেতনতা এবং স্বাস্থ্যসেবা সহজলভ্য করার একটি বহুভাষিক এআই প্ল্যাটফর্ম।",
+    quickLinks: "গুরুত্বপূর্ণ লিঙ্ক",
+    navScreening: "পিসিওএস স্ক্রীনিং",
+    navVoiceAssistant: "ভয়েস সাথী",
+    navStore: "কেয়ার স্টোর",
+    chooseLanguage: "ভাষা নির্বাচন করুন",
+    medicalDisclaimer: "স্ত্রীশিওর শুধুমাত্র প্রাথমিক স্বাস্থ্য পরীক্ষা ও সচেতনতা প্রদান করে। এটি চূড়ান্ত চিকিৎসা রোগনির্ণয় বা ডাক্তারের বিকল্প নয়।",
   },
 
   mr: {
@@ -778,6 +801,13 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     footerGovernmentInitiatives: 'शासकीय उपक्रम',
     footerDisclaimers: 'अस्वीकरण: स्त्रीश्योर हे प्राथमिक डिजिटल स्क्रीनिंग साधन आहे.',
     allRightsReserved: 'सर्व हक्क राखीव.',
+    brandDescription: "स्त्रीश्योर हे संपूर्ण भारतात महिलांचे आरोग्य, प्राथमिक तपासणी, 3D शारीरिक शिक्षण आणि सुलभ आरोग्य सेवांसाठी समर्पित बहुभाषिक व्यासपीठ आहे.",
+    quickLinks: "महत्त्वाचे दुवे",
+    navScreening: "पीसीओएस तपासणी",
+    navVoiceAssistant: "व्हॉइस साथी",
+    navStore: "केअर स्टोअर",
+    chooseLanguage: "भाषा निवडा",
+    medicalDisclaimer: "स्त्रीश्योर केवळ प्राथमिक तपासणी आणि आरोग्य जागृती प्रदान करते. हे वैद्यकीय निदान किंवा डॉक्टरांच्या सल्ल्याचा पर्याय नाही.",
   },
 
   ta: {
@@ -970,6 +1000,13 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     footerGovernmentInitiatives: 'அரசு திட்டங்கள்',
     footerDisclaimers: 'பொறுப்புத் துறப்பு: ஸ்திரீஷ்யூர் ஒரு டிஜிட்டல் பரிசோதனை தளம் மட்டுமே.',
     allRightsReserved: 'அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
+    brandDescription: "ஸ்திரீஷ்யூர் என்பது இந்தியாவில் பெண்களுக்கான ஆரம்பகால பரிசோதனை, 3D உடற்கூறியல் விழிப்புணர்வு மற்றும் சுகாதார வழிகாட்டுதலுக்கான பன்மொழி AI தளமாகும்.",
+    quickLinks: "விரைவு இணைப்புகள்",
+    navScreening: "PCOS பரிசோதனை",
+    navVoiceAssistant: "வாய்ஸ் சாதி",
+    navStore: "கேர் ஸ்டோர்",
+    chooseLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்",
+    medicalDisclaimer: "ஸ்திரீஷ்யூர் ஆரம்பக்கட்ட பரிசோதனை மற்றும் விழிப்புணர்வை மட்டுமே வழங்குகிறது. இது இறுதி மருத்துவ பரிசோதனை அல்லது தகுதிவாய்ந்த மருத்துவரின் ஆலோசனையை மாற்றாது.",
   },
 
   te: {
@@ -1162,10 +1199,17 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     footerGovernmentInitiatives: 'ప్రభుత్వ పథకాలు',
     footerDisclaimers: 'గమనిక: స్త్రీష్యూర్ ఒక డిజిటల్ స్క్రీనింగ్ ప్లాట్‌ఫారమ్ మాత్రమే.',
     allRightsReserved: 'సర్వహక్కులు ప్రత్యేకించబడ్డాయి.',
+    brandDescription: "స్త్రీష్యూర్ అనేది భారతదేశం అంతటా మహిళల ఆరోగ్యం, ప్రాథమిక స్క్రీనింగ్, 3D శరీర నిర్మాణ అవగాహన మరియు సంరక్షణ మార్గదర్శకత్వం కోసం రూపొందించబడిన బహుభాషా AI వేదిక.",
+    quickLinks: "త్వరిత లింకులు",
+    navScreening: "PCOS స్క్రీనింగ్",
+    navVoiceAssistant: "వాయిస్ సాథీ",
+    navStore: "కేర్ స్టోర్",
+    chooseLanguage: "భాషను ఎంచుకోండి",
+    medicalDisclaimer: "స్త్రీష్యూర్ కేవలం ప్రాథమిక స్క్రీనింగ్ మరియు ఆరోగ్య అవగాహనను అందిస్తుంది. ఇది వైద్య నిర్ధారణ లేదా అర్హత కలిగిన వైద్యుని సంప్రదింపులకు ప్రత్యామ్నాయం కాదు.",
   },
 };
 
-export function getTranslation(lang: LanguageCode, key: string): string {
+export function getTranslation(lang: LanguageCode, key: string, fallback?: string): string {
   if (MODULE_TRANSLATIONS[lang] && MODULE_TRANSLATIONS[lang][key]) {
     return MODULE_TRANSLATIONS[lang][key];
   }
@@ -1184,5 +1228,8 @@ export function getTranslation(lang: LanguageCode, key: string): string {
   if (translations['en'] && translations['en'][key]) {
     return translations['en'][key];
   }
-  return key;
+  if (fallback !== undefined) {
+    return fallback;
+  }
+  return '';
 }

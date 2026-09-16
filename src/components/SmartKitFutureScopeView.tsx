@@ -40,9 +40,13 @@ import {
   Globe,
   Share2,
   Download,
+  Play,
+  PlayCircle,
+  Video,
 } from 'lucide-react';
 import { LanguageCode, User, ScreeningLevel } from '../types';
 import { getTranslation } from '../services/translations';
+import { SmartKitVideoShowcase } from './SmartKitVideoShowcase';
 
 interface SmartKitFutureScopeViewProps {
   currentUser: User | null;
@@ -61,6 +65,7 @@ export const SmartKitFutureScopeView: React.FC<SmartKitFutureScopeViewProps> = (
 }) => {
   // Navigation sub-tabs
   const [activeSubTab, setActiveSubTab] = useState<
+    | 'video_demo'
     | 'vision'
     | 'modules'
     | 'simulator'
@@ -69,7 +74,7 @@ export const SmartKitFutureScopeView: React.FC<SmartKitFutureScopeViewProps> = (
     | 'roadmap'
     | 'research'
     | 'sih_guide'
-  >('vision');
+  >('video_demo');
 
   // Interactive Simulator State
   const [simStep, setSimStep] = useState<
@@ -181,8 +186,18 @@ export const SmartKitFutureScopeView: React.FC<SmartKitFutureScopeViewProps> = (
             From digital questionnaire screening to accessible community-level physical assessment. We are architecting a compact, rural-friendly, multi-parameter companion device combining ESP32-S3 microcontroller, TCS34725 optical sensor chamber, controlled LED illumination, and BLE connectivity directly with StreeSure's screening engine and ASHA worker workflows.
           </p>
 
-          {/* Quick Pillar Tags */}
-          <div className="flex flex-wrap gap-2 pt-2">
+          {/* Quick Pillar Tags & Video CTA */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              type="button"
+              id="btn-hero-watch-demo-video"
+              onClick={() => setActiveSubTab('video_demo')}
+              className="px-5 py-2 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-500 hover:to-purple-500 text-white text-xs font-black transition shadow-xl shadow-rose-950/60 flex items-center gap-2"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>{currentLanguage === 'hi' ? 'स्मार्ट किट लाइव वीडियो देखें (15s)' : 'Watch Live Kit & App Demo (15s)'}</span>
+            </button>
+
             {[
               { label: 'Non-Invasive First', icon: ShieldCheck },
               { label: 'ASHA Field Ready', icon: Users },
@@ -208,6 +223,11 @@ export const SmartKitFutureScopeView: React.FC<SmartKitFutureScopeViewProps> = (
       {/* 3. INTERACTIVE SUB-NAVIGATION TABS */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-rose-500/20">
         {[
+          {
+            id: 'video_demo',
+            label: currentLanguage === 'hi' ? '🎥 किट वीडियो व लाइव टूर' : '🎥 Live Kit Video Demo',
+            icon: PlayCircle,
+          },
           { id: 'vision', label: '1. Vision & Ecosystem', icon: Globe },
           { id: 'modules', label: '2. Modular Architecture', icon: Layers },
           { id: 'simulator', label: '3. Live Kit Simulator', icon: Gauge },
@@ -223,6 +243,7 @@ export const SmartKitFutureScopeView: React.FC<SmartKitFutureScopeViewProps> = (
             <button
               key={tab.id}
               type="button"
+              id={`tab-${tab.id}`}
               onClick={() => setActiveSubTab(tab.id as any)}
               className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
                 isActive
@@ -238,10 +259,49 @@ export const SmartKitFutureScopeView: React.FC<SmartKitFutureScopeViewProps> = (
       </div>
 
       {/* ========================================================================= */}
+      {/* TAB 0: LIVE HARDWARE DEMO VIDEO & TYPOGRAPHY REVISION */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'video_demo' && (
+        <div className="space-y-8 animate-in fade-in duration-200">
+          <SmartKitVideoShowcase
+            currentLanguage={currentLanguage}
+            onLaunchSimulator={() => setActiveSubTab('simulator')}
+            onOpenVoiceSaathi={onOpenVoiceSaathi}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* TAB 1: VISION & ECOSYSTEM */}
       {/* ========================================================================= */}
       {activeSubTab === 'vision' && (
         <div className="space-y-8 animate-in fade-in duration-200">
+          {/* Quick Video Preview Strip in Vision Tab */}
+          <div className="p-5 rounded-3xl bg-gradient-to-r from-purple-950/60 via-rose-950/50 to-[#180e25] border border-rose-500/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-600/20 border border-rose-500/40 text-rose-300 flex items-center justify-center shrink-0">
+                <Play className="w-6 h-6 fill-rose-400 text-rose-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">
+                  {currentLanguage === 'hi' ? 'स्त्रीश्योर सेंस लाइव वीडियो वॉकथ्रू उपलब्ध है' : 'StreeSure Sense 15s Video Walkthrough Ready'}
+                </h4>
+                <p className="text-xs text-rose-200/70">
+                  {currentLanguage === 'hi'
+                    ? 'हार्डवेयर और ऐप का लाइव वीडियो, सही किया गया टेक्स्ट और सेंसर टेलीमेट्री देखें।'
+                    : 'Watch the live hardware & app synchronization demo with corrected clinical typography.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('video_demo')}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shrink-0 flex items-center gap-1.5"
+            >
+              <span>{currentLanguage === 'hi' ? 'वीडियो देखें' : 'Open Video Demo'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
           {/* Scientific Position Card */}
           <div className="p-6 rounded-3xl bg-[#170c22] border border-rose-500/30 space-y-4">
             <div className="flex items-center gap-2 text-pink-400 text-xs font-bold uppercase tracking-wider">

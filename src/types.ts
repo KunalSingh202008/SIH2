@@ -253,6 +253,27 @@ export interface ScreeningResult {
   };
 }
 
+export interface SavedPdfReport {
+  id: string; // e.g. "STR-REP-912044"
+  screeningId: string; // result.id
+  userId: string;
+  userName?: string;
+  createdAt: string; // ISO string
+  formattedDate: string; // e.g. "11 Sep 2026, 02:30 PM"
+  filename: string; // "StreeSure_Health_Assessment_Report_STR-REP-912044.pdf"
+  overallScore: number;
+  level: ScreeningLevel;
+  pcosPattern: 'LOW' | 'MODERATE' | 'HIGH';
+  levelTitle: string;
+  summary: string;
+  language: LanguageCode;
+  result: ScreeningResult;
+  aiExplanation?: string;
+  downloadCount: number;
+  lastDownloadedAt?: string;
+  status?: 'SAVED' | 'DOWNLOADED';
+}
+
 export interface Doctor {
   id: string;
   name: string;
@@ -592,11 +613,14 @@ export interface ProgressMilestone {
 
 export interface SymptomTrendRecord {
   month: string;
+  shortMonth?: string;
   avgCycleLength: number;
   crampScore: number;
   acneScore: number;
   energyScore: number;
   insulinScore: number;
+  symptomFrequencyDays?: number;
+  bloatingScore?: number;
 }
 
 // EXERCISE PORTAL

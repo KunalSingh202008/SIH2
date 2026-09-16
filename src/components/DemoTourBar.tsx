@@ -126,10 +126,10 @@ export const DemoTourBar: React.FC<DemoTourBarProps> = ({
               type="button"
               id="demo-btn-smart-kit"
               onClick={onOpenSmartKit}
-              className="flex items-center gap-1 bg-gradient-to-r from-amber-900/60 to-rose-900/60 hover:from-amber-800/70 hover:to-rose-800/70 text-amber-200 border border-amber-500/40 px-3 py-1 rounded-full text-[11px] font-semibold transition"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-900/60 via-rose-900/60 to-pink-900/60 hover:from-amber-800/70 hover:to-pink-800/70 text-amber-200 border border-amber-500/40 px-3 py-1 rounded-full text-[11px] font-semibold transition shadow-sm"
             >
               <Cpu className="w-3 h-3 text-amber-400" />
-              <span>Smart Kit (R&D)</span>
+              <span>Smart Kit (Video Demo)</span>
             </button>
           )}
 

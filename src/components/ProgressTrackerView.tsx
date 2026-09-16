@@ -41,6 +41,7 @@ import {
   SEED_PROGRESS_MILESTONES,
   SEED_SYMPTOM_TRENDS,
 } from '../data/wellnessData';
+import { HealthTrendsChart } from './HealthTrendsChart';
 
 interface ProgressTrackerViewProps {
   currentUser: User | null;
@@ -271,7 +272,7 @@ export const ProgressTrackerView: React.FC<ProgressTrackerViewProps> = ({
         {[
           { id: 'overview', label: currentLanguage === 'hi' ? 'दैनिक सारांश' : 'Progress Dashboard', icon: Activity },
           { id: 'milestones', label: currentLanguage === 'hi' ? 'लक्ष्य व बैज' : 'Milestones & Badges', icon: Award },
-          { id: 'trends', label: currentLanguage === 'hi' ? 'लक्षण सुधार ट्रेंड्स' : 'Symptom Reduction Trends', icon: TrendingUp },
+          { id: 'trends', label: currentLanguage === 'hi' ? '6-माह स्वास्थ्य चार्ट' : '6-Month Trends Chart', icon: TrendingUp },
           { id: 'daily_log', label: currentLanguage === 'hi' ? 'लॉग इतिहास' : 'Daily Log History', icon: Calendar },
           { id: 'report', label: currentLanguage === 'hi' ? 'डॉक्टर रिपोर्ट (PDF)' : 'Clinical Care Summary', icon: FileText },
         ].map((tab) => {
@@ -506,6 +507,36 @@ export const ProgressTrackerView: React.FC<ProgressTrackerViewProps> = ({
               </div>
             )}
           </div>
+
+          {/* 6-Month Telemetry Highlight Card in Overview */}
+          <div className="bg-gradient-to-r from-[#170e24] via-[#1a0f2b] to-[#120a1f] rounded-3xl p-6 border border-rose-500/30 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold uppercase tracking-wider">
+                <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+                <span>{currentLanguage === 'hi' ? '6-महीने का क्लिनिकल रुझान' : '6-Month Longitudinal Trajectory'}</span>
+              </div>
+              <h3 className="text-xl font-bold text-white">
+                {currentLanguage === 'hi'
+                  ? 'माहवारी चक्र 58 दिन से घटकर 32 दिन पर स्थिर हुआ'
+                  : 'Cycle Duration Normalized from 58 to 32 Days'}
+              </h3>
+              <p className="text-xs text-rose-200/80 leading-relaxed">
+                {currentLanguage === 'hi'
+                  ? 'पिछले 6 महीनों में लक्षण वाले दिन 24 दिन/माह से गिरकर मात्र 5 दिन रह गए हैं। इंटरैक्टिव रीचार्ट्स विज़ुअलाइज़ेशन में संपूर्ण डेटा देखें।'
+                  : 'Symptom frequency plummeted from 24 days/month down to 5 days/month with a 70% reduction in dysmenorrhea cramps. Explore the full Recharts analytics.'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              id="btn-view-trends-chart"
+              onClick={() => setActiveSubTab('trends')}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-purple-600 hover:from-rose-500 hover:to-purple-500 text-white text-xs font-bold transition shadow-lg shadow-purple-950/40 shrink-0 self-start md:self-auto"
+            >
+              <span>{currentLanguage === 'hi' ? 'इंटरैक्टिव लाइन चार्ट खोलें' : 'Open Recharts Trends'}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -605,9 +636,15 @@ export const ProgressTrackerView: React.FC<ProgressTrackerViewProps> = ({
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">4-Month Clinical Recovery Trends</h2>
+              <h2 className="text-xl font-bold text-white">
+                {currentLanguage === 'hi'
+                  ? '6-महीने का क्लिनिकल स्वास्थ्य व रिकवरी रुझान'
+                  : '6-Month Longitudinal Health Metrics Trends'}
+              </h2>
               <p className="text-xs text-rose-200/70">
-                Observational metrics showing cycle normalization, pain score drops, and insulin improvement.
+                {currentLanguage === 'hi'
+                  ? 'माहवारी चक्र अवधि, लक्षण आवृत्ति और इंसुलिन सुधार का इंटरैक्टिव रीचार्ट्स डेटा विज़ुअलाइज़ेशन।'
+                  : 'Observational telemetry tracking menstrual cycle duration, symptom frequency, dysmenorrhea relief, and energy index.'}
               </p>
             </div>
             <button
@@ -620,60 +657,31 @@ export const ProgressTrackerView: React.FC<ProgressTrackerViewProps> = ({
             </button>
           </div>
 
-          {/* Metric Comparison Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-[#140c1e] rounded-3xl p-5 border border-rose-500/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-rose-200/60 uppercase font-semibold">Cycle Duration</span>
-                <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5">
-                  <TrendingDown className="w-3.5 h-3.5" /> -19 Days
-                </span>
-              </div>
-              <p className="text-2xl font-black text-white">35 Days</p>
-              <p className="text-[11px] text-slate-400">From 54 days in May 2026</p>
+          {/* Primary Interactive Recharts Visualization Component */}
+          <HealthTrendsChart
+            data={SEED_SYMPTOM_TRENDS}
+            currentLanguage={currentLanguage}
+            onOpenConsultation={onBookDoctor}
+          />
+
+          {/* Detailed 6-Month Breakdown Table */}
+          <div className="bg-[#140c1e] rounded-3xl p-6 border border-rose-500/20 shadow-xl overflow-x-auto space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-rose-400" />
+                <span>{currentLanguage === 'hi' ? '6-महीने का मासिक विस्तृत रिकॉर्ड' : '6-Month Detailed Month-by-Month Log'}</span>
+              </h3>
+              <span className="text-[11px] text-rose-300/70">
+                {currentLanguage === 'hi' ? 'अप्रैल 2026 – सितंबर 2026' : 'April 2026 – September 2026'}
+              </span>
             </div>
 
-            <div className="bg-[#140c1e] rounded-3xl p-5 border border-rose-500/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-rose-200/60 uppercase font-semibold">Cramps Severity</span>
-                <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5">
-                  <TrendingDown className="w-3.5 h-3.5" /> -60% Drop
-                </span>
-              </div>
-              <p className="text-2xl font-black text-emerald-400">1.8 / 5</p>
-              <p className="text-[11px] text-slate-400">From 4.5/5 severe dysmenorrhea</p>
-            </div>
-
-            <div className="bg-[#140c1e] rounded-3xl p-5 border border-rose-500/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-rose-200/60 uppercase font-semibold">Acne / Hirsutism</span>
-                <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5">
-                  <TrendingDown className="w-3.5 h-3.5" /> -55% Soothed
-                </span>
-              </div>
-              <p className="text-2xl font-black text-emerald-400">1.9 / 5</p>
-              <p className="text-[11px] text-slate-400">Benefiting from Spearmint tea</p>
-            </div>
-
-            <div className="bg-[#140c1e] rounded-3xl p-5 border border-rose-500/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-rose-200/60 uppercase font-semibold">Daily Energy Index</span>
-                <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5">
-                  <TrendingUp className="w-3.5 h-3.5" /> +110% Boost
-                </span>
-              </div>
-              <p className="text-2xl font-black text-pink-400">4.4 / 5</p>
-              <p className="text-[11px] text-slate-400">Zero afternoon sugar crashes</p>
-            </div>
-          </div>
-
-          {/* Detailed Monthly Breakdown Table */}
-          <div className="bg-[#140c1e] rounded-3xl p-6 border border-rose-500/20 shadow-xl overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-rose-500/20 text-rose-200/60 uppercase text-[11px]">
                   <th className="py-3 px-4">Reporting Month</th>
                   <th className="py-3 px-4">Cycle Length</th>
+                  <th className="py-3 px-4">Symptom Days</th>
                   <th className="py-3 px-4">Cramp Score (0-5)</th>
                   <th className="py-3 px-4">Cystic Acne (0-5)</th>
                   <th className="py-3 px-4">Energy Index (0-5)</th>
@@ -689,6 +697,14 @@ export const ProgressTrackerView: React.FC<ProgressTrackerViewProps> = ({
                     </td>
                     <td className="py-3 px-4 font-semibold text-purple-300">
                       {item.avgCycleLength} Days
+                      {item.avgCycleLength <= 35 && (
+                        <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                          Normal
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-rose-400">
+                      {item.symptomFrequencyDays || 5} d/mo
                     </td>
                     <td className="py-3 px-4">
                       <span

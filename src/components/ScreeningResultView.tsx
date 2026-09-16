@@ -21,13 +21,17 @@ import {
   Info,
   Download,
   Loader2,
+  History,
+  RefreshCw,
 } from 'lucide-react';
-import { LanguageCode, ScreeningResult, User } from '../types';
+import { LanguageCode, SavedPdfReport, ScreeningResult, User } from '../types';
 import { getTranslation } from '../services/translations';
 import { speakText, stopSpeaking } from '../services/voiceService';
 import { ClinicalIntelligence } from '../services/clinicalIntelligence';
 import { PdfReportModal } from './PdfReportModal';
 import { generateScreeningPdfReport } from '../services/pdfReportGenerator';
+import { saveReportToProfile } from '../services/reportHistoryService';
+import { PastPdfReportsSection } from './PastPdfReportsSection';
 
 interface ScreeningResultViewProps {
   result: ScreeningResult;
@@ -50,6 +54,8 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
   onOpen3DModal,
   onRetakeScreening,
 }) => {
+  const [selectedHistoricalReport, setSelectedHistoricalReport] = useState<SavedPdfReport | null>(null);
+  const [pdfModalResult, setPdfModalResult] = useState<ScreeningResult | null>(null);
   const [isAiExplaining, setIsAiExplaining] = useState(false);
   const [aiExplanationText, setAiExplanationText] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -62,18 +68,46 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
 
   const t = (key: string) => getTranslation(currentLanguage, key);
 
-  const handleDownloadReportPdf = async () => {
-    setIsDownloadingPdf(true);
-    try {
-      const { success, filename } = await generateScreeningPdfReport({
+  // Active result switches between latest assessment and any selected past assessment
+  const activeResult = selectedHistoricalReport ? selectedHistoricalReport.result : result;
+  const activeExplanationText = selectedHistoricalReport
+    ? selectedHistoricalReport.aiExplanation || aiExplanationText
+    : aiExplanationText;
+
+  // Auto-save current screening to user profile on mount or when result updates
+  useEffect(() => {
+    if (result) {
+      saveReportToProfile({
         result,
         currentUser,
         currentLanguage,
-        intelligence,
         aiExplanation: aiExplanationText,
+        wasDownloaded: false,
+      });
+    }
+  }, [result.id, currentUser?.id]);
+
+  const handleDownloadReportPdf = async (targetResult?: ScreeningResult) => {
+    const toDownload = targetResult || activeResult;
+    setIsDownloadingPdf(true);
+    try {
+      const { success, filename } = await generateScreeningPdfReport({
+        result: toDownload,
+        currentUser,
+        currentLanguage,
+        intelligence,
+        aiExplanation: activeExplanationText,
       });
       if (success) {
         setPdfDownloadSuccess(filename);
+        saveReportToProfile({
+          result: toDownload,
+          currentUser,
+          currentLanguage,
+          aiExplanation: activeExplanationText,
+          wasDownloaded: true,
+          filename,
+        });
         setTimeout(() => setPdfDownloadSuccess(null), 6000);
       }
     } catch (err) {
@@ -83,8 +117,10 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
     }
   };
 
-  // Pattern styling
-  const pcosPattern = result.pcosPattern || (result.overallScore >= 55 ? 'HIGH' : result.overallScore >= 28 ? 'MODERATE' : 'LOW');
+  // Pattern styling based on activeResult
+  const pcosPattern =
+    activeResult.pcosPattern ||
+    (activeResult.overallScore >= 55 ? 'HIGH' : activeResult.overallScore >= 28 ? 'MODERATE' : 'LOW');
 
   const getBadgeStyle = () => {
     switch (pcosPattern) {
@@ -133,7 +169,7 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ screeningResult: result }),
+        body: JSON.stringify({ screeningResult: activeResult }),
       });
       if (!response.ok) throw new Error('Unable to build the explanation');
       setIntelligence(await response.json());
@@ -145,10 +181,9 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
   };
 
   useEffect(() => {
-    if (currentUser?.id && result.userId === currentUser.id) handleBuildIntelligence();
-    // This panel is derived from the already-computed screening result.
+    if (currentUser?.id && activeResult.userId === currentUser.id) handleBuildIntelligence();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, result.id]);
+  }, [currentUser?.id, activeResult.id]);
 
   const handleFetchAiExplanation = async () => {
     setIsAiExplaining(true);
@@ -157,7 +192,7 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          screeningResult: result,
+          screeningResult: activeResult,
           language: currentLanguage,
         }),
       });
@@ -191,8 +226,8 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
         const patternMr = pcosPattern === 'HIGH' ? 'जास्त धोका' : pcosPattern === 'MODERATE' ? 'मध्यम धोका' : 'कमी धोका';
         speech = `स्त्रीश्योर तपासणी निकाल: आपल्या लक्षणांनुसार ${patternMr} आढळला आहे. कृपया तज्ज्ञ डॉक्टरांचा सल्ला घ्या.`;
       } else {
-        const summaryText = result.levelDescription || 'Your responses show a pattern of PCOS-associated features that may warrant clinical evaluation.';
-        const stepsText = (result.recommendedNextSteps || []).join('. ');
+        const summaryText = activeResult.levelDescription || 'Your responses show a pattern of PCOS-associated features that may warrant clinical evaluation.';
+        const stepsText = (activeResult.recommendedNextSteps || []).join('. ');
         speech = `StreeSure Preliminary Screening: ${pcosPattern} PCOS-Associated Feature Pattern. ${summaryText}. What to do next: ${stepsText}`;
       }
       speakText(speech, currentLanguage, () => setIsSpeaking(false));
@@ -232,15 +267,15 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
     }
   };
 
-  const pb = result.pointBreakdown || {
+  const pb = activeResult.pointBreakdown || {
     menstrualPatternScore: 26,
     clinicalSymptomsScore: 20,
     metabolicContextScore: 12,
     supportingContextScore: 4,
-    totalScore: result.overallScore,
+    totalScore: activeResult.overallScore,
   };
 
-  const nextStepsList = result.recommendedNextSteps || [
+  const nextStepsList = activeResult.recommendedNextSteps || [
     'Schedule a consultation with a registered Gynecologist via StreeSure for clinical evaluation.',
     'Maintain an ongoing menstrual log in the StreeSure Period Tracker to share objective timeline data with your doctor.',
     'Share your metabolic profile with your healthcare provider for integrated lifestyle guidance.',
@@ -248,6 +283,47 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      {/* Historical Assessment View Banner */}
+      {selectedHistoricalReport && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-500/40 animate-in fade-in slide-in-from-top-3">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30">
+              <History className="w-3.5 h-3.5" />
+              <span>Historical Assessment Mode</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white">
+              Viewing Historical Assessment: {selectedHistoricalReport.id}
+            </h3>
+            <p className="text-xs text-indigo-200">
+              Preserved in your profile from {selectedHistoricalReport.formattedDate} • Overall Score: {selectedHistoricalReport.overallScore}/100 • Pattern: {selectedHistoricalReport.pcosPattern}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              id="btn-redownload-banner"
+              onClick={() => handleDownloadReportPdf(selectedHistoricalReport.result)}
+              disabled={isDownloadingPdf}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-md shadow-rose-900/40"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Re-download This PDF</span>
+            </button>
+
+            <button
+              type="button"
+              id="btn-return-latest-banner"
+              onClick={() => setSelectedHistoricalReport(null)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition border border-white/20"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Return to Latest Assessment</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Download Success Banner */}
       {pdfDownloadSuccess && (
         <div className="bg-emerald-700 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in slide-in-from-top-2">
@@ -256,9 +332,9 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
               <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm">Clinical Health Assessment Report Downloaded</p>
+              <p className="font-bold text-sm">Clinical Health Assessment Report Downloaded & Preserved</p>
               <p className="text-[11px] text-emerald-100 font-normal">
-                Saved as <span className="font-mono font-bold text-white">{pdfDownloadSuccess}</span>. Includes your health assessment, screening date, Rotterdam metrics, and AI-derived recommendations.
+                Saved as <span className="font-mono font-bold text-white">{pdfDownloadSuccess}</span>. Updated in your profile assessment history. Includes your health assessment, screening date, Rotterdam metrics, and AI-derived recommendations.
               </p>
             </div>
           </div>
@@ -299,7 +375,7 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
             <button
               type="button"
               id="btn-download-report-pdf-top"
-              onClick={handleDownloadReportPdf}
+              onClick={() => handleDownloadReportPdf(activeResult)}
               disabled={isDownloadingPdf}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-200 transition disabled:opacity-60"
               title="Download health assessment report as PDF"
@@ -315,13 +391,25 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
             <button
               type="button"
               id="btn-view-pdf-report-top"
-              onClick={() => setShowPdfModal(true)}
+              onClick={() => {
+                setPdfModalResult(activeResult);
+                setShowPdfModal(true);
+              }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold shadow-xs hover:bg-slate-50 transition"
               title="View full report preview and print"
             >
               <FileText className="w-4 h-4 text-slate-600" />
               <span>{t('pdfReportBtn')}</span>
             </button>
+
+            <a
+              href="#past-pdf-reports-history"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition"
+              title="View past PDF reports and assessment history"
+            >
+              <History className="w-4 h-4 text-rose-400" />
+              <span>Past Reports & History</span>
+            </a>
 
             <button
               type="button"
@@ -573,7 +661,7 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
 
             {/* Structured Factor Observations */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {result.contributingFactors.map((obs, idx) => (
+              {activeResult.contributingFactors.map((obs, idx) => (
                 <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 flex items-start gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center shrink-0 mt-0.5">
                     ✓
@@ -639,11 +727,11 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800">Glucose</span>
-              {renderSourceBadge(result.metabolicProfile?.glucose?.source || 'DEMO')}
+              {renderSourceBadge(activeResult.metabolicProfile?.glucose?.source || 'DEMO')}
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-extrabold text-slate-900">
-                {result.metabolicProfile?.glucose?.value || 112}
+                {activeResult.metabolicProfile?.glucose?.value || 112}
               </span>
               <span className="text-xs text-slate-500 font-semibold">mg/dL</span>
             </div>
@@ -654,11 +742,11 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800">Triglycerides</span>
-              {renderSourceBadge(result.metabolicProfile?.triglycerides?.source || 'DEMO')}
+              {renderSourceBadge(activeResult.metabolicProfile?.triglycerides?.source || 'DEMO')}
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-extrabold text-slate-900">
-                {result.metabolicProfile?.triglycerides?.value || 168}
+                {activeResult.metabolicProfile?.triglycerides?.value || 168}
               </span>
               <span className="text-xs text-slate-500 font-semibold">mg/dL</span>
             </div>
@@ -669,11 +757,11 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800">Total Cholesterol</span>
-              {renderSourceBadge(result.metabolicProfile?.totalCholesterol?.source || 'DEMO')}
+              {renderSourceBadge(activeResult.metabolicProfile?.totalCholesterol?.source || 'DEMO')}
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-extrabold text-slate-900">
-                {result.metabolicProfile?.totalCholesterol?.value || 208}
+                {activeResult.metabolicProfile?.totalCholesterol?.value || 208}
               </span>
               <span className="text-xs text-slate-500 font-semibold">mg/dL</span>
             </div>
@@ -682,7 +770,7 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
         </div>
 
         {/* Hardware Measurements Detail Log */}
-        {result.hardwareMeasurements && result.hardwareMeasurements.length > 0 && (
+        {activeResult.hardwareMeasurements && activeResult.hardwareMeasurements.length > 0 && (
           <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -690,12 +778,12 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
                 <span className="text-xs font-bold">StreeSure Hardware Import Log</span>
               </div>
               <span className="text-[10px] font-bold text-purple-300">
-                Device: {result.hardwareMeasurements[0]?.deviceId || 'STREESURE-PROTOTYPE-01'}
+                Device: {activeResult.hardwareMeasurements[0]?.deviceId || 'STREESURE-PROTOTYPE-01'}
               </span>
             </div>
 
             <div className="divide-y divide-slate-800 text-xs">
-              {result.hardwareMeasurements.map((m, idx) => (
+              {activeResult.hardwareMeasurements.map((m, idx) => (
                 <div key={idx} className="py-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-200">{m.parameter.replace(/_/g, ' ')}</span>
@@ -720,6 +808,24 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* 3.5. PAST PDF REPORTS & ASSESSMENTS HISTORY */}
+      <PastPdfReportsSection
+        currentResult={result}
+        currentUser={currentUser}
+        currentLanguage={currentLanguage}
+        selectedReportId={selectedHistoricalReport?.id}
+        isViewingHistorical={Boolean(selectedHistoricalReport)}
+        onSelectReportToView={(rep) => {
+          setSelectedHistoricalReport(rep);
+          window.scrollTo({ top: 120, behavior: 'smooth' });
+        }}
+        onPreviewPdf={(res) => {
+          setPdfModalResult(res);
+          setShowPdfModal(true);
+        }}
+        onBackToLatest={() => setSelectedHistoricalReport(null)}
+      />
 
       {/* 4. "WHAT THIS RESULT MEANS" VS "WHAT IT DOES NOT MEAN" */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -803,7 +909,10 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
             <button
               type="button"
               id="btn-view-pdf-report-bottom"
-              onClick={() => setShowPdfModal(true)}
+              onClick={() => {
+                setPdfModalResult(activeResult);
+                setShowPdfModal(true);
+              }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition"
             >
               <FileText className="w-3.5 h-3.5" />
@@ -813,7 +922,7 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
             <button
               type="button"
               id="btn-download-pdf-report-bottom"
-              onClick={handleDownloadReportPdf}
+              onClick={() => handleDownloadReportPdf(activeResult)}
               disabled={isDownloadingPdf}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition shadow-xs disabled:opacity-60"
             >
@@ -831,10 +940,22 @@ export const ScreeningResultView: React.FC<ScreeningResultViewProps> = ({
       {/* Official PDF Report Form Modal & Exporter */}
       <PdfReportModal
         isOpen={showPdfModal}
-        onClose={() => setShowPdfModal(false)}
-        result={result}
+        onClose={() => {
+          setShowPdfModal(false);
+          setPdfModalResult(null);
+        }}
+        result={pdfModalResult || activeResult}
         currentUser={currentUser}
         currentLanguage={currentLanguage}
+        onReportDownloaded={(repId, filename) => {
+          saveReportToProfile({
+            result: pdfModalResult || activeResult,
+            currentUser,
+            currentLanguage,
+            wasDownloaded: true,
+            filename,
+          });
+        }}
       />
     </div>
   );

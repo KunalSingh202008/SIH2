@@ -22,6 +22,7 @@ import {
   Globe,
   Compass,
   ArrowRight,
+  FileText,
 } from 'lucide-react';
 import { LanguageCode, Role, User } from '../types';
 import { getTranslation, SUPPORTED_LANGUAGES } from '../services/translations';
@@ -79,6 +80,15 @@ export const SideMenuDrawer: React.FC<SideMenuDrawerProps> = ({
       category: 'clinical',
       badge: 'Free AI',
       color: 'from-rose-500 to-pink-500',
+    },
+    {
+      id: 'screening_result',
+      titleKey: 'navPastReports',
+      descKey: 'Access your preserved assessment history, medical findings & re-download PDF reports',
+      icon: FileText,
+      category: 'clinical',
+      badge: 'PDF History',
+      color: 'from-teal-600 to-emerald-600',
     },
     {
       id: 'anatomy3d',

@@ -30,6 +30,7 @@ interface PdfReportModalProps {
   result: ScreeningResult;
   currentUser: User | null;
   currentLanguage: LanguageCode;
+  onReportDownloaded?: (reportId: string, filename: string) => void;
 }
 
 export const PdfReportModal: React.FC<PdfReportModalProps> = ({
@@ -38,6 +39,7 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
   result,
   currentUser,
   currentLanguage,
+  onReportDownloaded,
 }) => {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -83,13 +85,18 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
     setDownloadSuccess(false);
 
     try {
-      await generateScreeningPdfReport({
+      const resp = await generateScreeningPdfReport({
         result,
         currentUser,
         currentLanguage,
       });
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 5000);
+      if (resp.success) {
+        setDownloadSuccess(true);
+        if (onReportDownloaded) {
+          onReportDownloaded(reportId, resp.filename);
+        }
+        setTimeout(() => setDownloadSuccess(false), 5000);
+      }
     } catch (err) {
       console.error('Error generating PDF:', err);
       window.print();
